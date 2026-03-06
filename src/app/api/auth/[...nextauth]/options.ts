@@ -5,8 +5,9 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { compare } from "bcryptjs";
+import { GithubProfile } from "next-auth/providers/github";
 
-// Extend NextAuth types to include custom fields
+// Extending NextAuth types to include custom fields
 declare module "next-auth" {
   interface Session {
     user: {
@@ -37,6 +38,15 @@ export const options: NextAuthOptions = {
   },
   providers: [
     GithubProvider({
+      profile(profile: GithubProfile) {
+        console.log(profile);
+        return {
+          ...profile, 
+          role: profile.role ?? "user",
+          id: profile.id.toString(),
+          image: profile.avatar_url,
+        }
+      },
       clientId: process.env.GITHUB_CLIENT_ID as string,
       clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
     }),
@@ -115,15 +125,10 @@ export const options: NextAuthOptions = {
               email: user.email || '',
               githubId: user.id,
             });
-
-            console.log("✅ GitHub user created in database:", user.email);
-          } else {
-            console.log("ℹ️ GitHub user already exists:", existingUser[0].email);
           }
-
           return true;
         } catch (error) {
-          console.error("❌ Error saving GitHub user to database:", error);
+          console.error("Error saving GitHub user to database:", error);
           return false;
         }
       }
